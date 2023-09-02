@@ -1,10 +1,8 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <sstream>
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -13,20 +11,39 @@ using tcp = asio::ip::tcp;
 
 std::vector<std::string> messages = {"Hello", "World"};
 
-std::string json_array(const std::vector<std::string> &arr)
+const std::string msgInAPI = "You inside in API";
+const std::string msgNotFound = "Not found";
+
+std::string json_array(const std::vector<std::string> &messages)
 {
-    std::stringstream ss;
-    ss << '[';
-    for (size_t i = 0; i < arr.size(); ++i)
+    boost::property_tree::ptree tree;
+    for (const auto &message : messages)
     {
-        ss << '"' << arr[i] << '"';
-        if (i < arr.size() - 1)
-        {
-            ss << ',';
-        }
+        boost::property_tree::ptree message_node;
+        message_node.put("", message);
+        tree.push_back(std::make_pair("", message_node));
     }
-    ss << ']';
-    return ss.str();
+
+    std::stringstream json_ss;
+    boost::property_tree::write_json(json_ss, tree);
+    return json_ss.str();
+}
+
+// Десериализация json-строки в вектор сообщений
+std::vector<std::string> parse_json_array(const std::string &json)
+{
+    std::vector<std::string> result;
+    std::stringstream json_ss(json);
+
+    boost::property_tree::ptree tree;
+    boost::property_tree::read_json(json_ss, tree);
+
+    for (const auto &element : tree)
+    {
+        result.push_back(element.second.get_value<std::string>());
+    }
+
+    return result;
 }
 
 void handle_request(http::request<http::string_body> const &req, http::response<http::string_body> &res)
@@ -40,9 +57,10 @@ void handle_request(http::request<http::string_body> const &req, http::response<
     }
     else if (req.method() == http::verb::post && req.target() == "/messages")
     {
-        messages.emplace_back(req.body());
+        auto new_messages = parse_json_array(req.body());
+        messages.insert(messages.end(), new_messages.begin(), new_messages.end());
         res.result(http::status::created);
-        res.body() = "Message created";
+        res.body() = "Messages created";
     }
     else if (req.method() == http::verb::patch && req.target() == "/messages")
     {
@@ -78,40 +96,15 @@ void handle_request(http::request<http::string_body> const &req, http::response<
             res.body() = "Message not found";
         }
     }
+    else if (req.method() == http::verb::get && req.target() == "/api")
+    {
+        res.body() = msgInAPI;
+    }
     else
     {
         res.result(http::status::not_found);
-        res.body() = "Not found!";
+        res.body() = msgNotFound; // 404
     }
 
     res.content_length(res.body().size());
-}
-
-int main()
-{
-    try
-    {
-        asio::io_context ioc;
-        asio::ip::port_type port = 5000;
-        tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), port));
-        std::cout << "Server running at http://localhost:" << port << "/\n";
-
-        for (;;)
-        {
-            tcp::socket socket(ioc);
-            acceptor.accept(socket);
-            beast::flat_buffer buffer;
-            http::request<http::string_body> request;
-            http::read(socket, buffer, request);
-            http::response<http::string_body> response;
-            handle_request(request, response);
-            http::write(socket, response);
-        }
-    }
-    catch (std::exception &e)
-    {
-        std::cerr << "Exception: " << e.what() << "\n";
-    }
-
-    return 0;
 }
