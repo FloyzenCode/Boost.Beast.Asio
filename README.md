@@ -9,7 +9,8 @@ mkdir build
 cd build
 cmake ..
 make
-web_api```
+web_api
+```
 
 or
 
