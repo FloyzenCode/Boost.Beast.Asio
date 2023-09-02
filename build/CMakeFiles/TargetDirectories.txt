@@ -1,3 +1,0 @@
-/Users/floyz/VSCode/cpp/boost/build/CMakeFiles/web_api.dir
-/Users/floyz/VSCode/cpp/boost/build/CMakeFiles/edit_cache.dir
-/Users/floyz/VSCode/cpp/boost/build/CMakeFiles/rebuild_cache.dir
