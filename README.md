@@ -17,7 +17,7 @@ or
 ```shell
 bash run.sh
 ```
-<img src="./assets/img1.png">
+<img src="./server/assets/img1.png">
 
 ---
 
