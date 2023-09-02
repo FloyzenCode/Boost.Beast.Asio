@@ -1,5 +1,11 @@
 {
+    "cmake.configureArgs": [
+        "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "-DCMAKE_BUILD_TYPE=Debug"
+    ],
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "files.associations": {
+        "vector": "cpp",
         "__bit_reference": "cpp",
         "__bits": "cpp",
         "__config": "cpp",
@@ -75,7 +81,6 @@
         "unordered_map": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "vector": "cpp",
         "__nullptr": "cpp",
         "__string": "cpp",
         "chrono": "cpp",

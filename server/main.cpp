@@ -1,3 +1,7 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
@@ -9,19 +13,29 @@ namespace http = beast::http;
 namespace asio = boost::asio;
 using tcp = asio::ip::tcp;
 
-std::vector<std::string> messages = {"Hello", "World"};
+struct Message
+{
+    int id;
+    std::string text;
+};
+
+std::vector<Message> messages = {
+    {1, "Hello"},
+    {2, "World"},
+};
 
 const std::string msgInAPI = "You inside in API";
 const std::string msgNotFound = "Not found";
 
-std::string json_array(const std::vector<std::string> &messages)
+std::string json_array(const std::vector<Message> &messages)
 {
     boost::property_tree::ptree tree;
     for (const auto &message : messages)
     {
         boost::property_tree::ptree message_node;
-        message_node.put("", message);
-        tree.push_back(std::make_pair("", message_node));
+        message_node.put("id", message.id);
+        message_node.put("text", message.text);
+        tree.push_back(std::make_pair("first", message_node));
     }
 
     std::stringstream json_ss;
@@ -50,51 +64,11 @@ void handle_request(http::request<http::string_body> const &req, http::response<
 {
     res.set(http::field::server, "Boost.Asio RESTful Server");
     res.set(http::field::content_type, "application/json");
+    res.set(http::field::access_control_allow_origin, "*");
 
     if (req.method() == http::verb::get && req.target() == "/messages")
     {
         res.body() = json_array(messages);
-    }
-    else if (req.method() == http::verb::post && req.target() == "/messages")
-    {
-        auto new_messages = parse_json_array(req.body());
-        messages.insert(messages.end(), new_messages.begin(), new_messages.end());
-        res.result(http::status::created);
-        res.body() = "Messages created";
-    }
-    else if (req.method() == http::verb::patch && req.target() == "/messages")
-    {
-        std::string id_str, message;
-        std::istringstream req_body_ss(req.body());
-        req_body_ss >> id_str >> message;
-
-        int id = std::stoi(id_str);
-
-        if (id >= 0 && id < messages.size())
-        {
-            messages[id] = message;
-            res.body() = "Message updated";
-        }
-        else
-        {
-            res.result(http::status::not_found);
-            res.body() = "Message not found";
-        }
-    }
-    else if (req.method() == http::verb::delete_ && req.target() == "/messages")
-    {
-        std::string message_id = std::string(req["Message-Id"]);
-        int id = std::stoi(message_id);
-        if (id >= 0 && id < messages.size())
-        {
-            messages.erase(messages.begin() + id);
-            res.body() = "Message deleted";
-        }
-        else
-        {
-            res.result(http::status::not_found);
-            res.body() = "Message not found";
-        }
     }
     else if (req.method() == http::verb::get && req.target() == "/api")
     {
@@ -107,4 +81,32 @@ void handle_request(http::request<http::string_body> const &req, http::response<
     }
 
     res.content_length(res.body().size());
+}
+int main()
+{
+    try
+    {
+        boost::asio::io_context ioc;
+        boost::asio::ip::port_type port = 5000;
+        asio::ip::tcp::acceptor acceptor(ioc, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port));
+        std::cout << "Server running at http://localhost:" << port << "/\n";
+
+        for (;;)
+        {
+            asio::ip::tcp::socket socket(ioc);
+            acceptor.accept(socket);
+            beast::flat_buffer buffer;
+            beast::http::request<beast::http::string_body> request;
+            beast::http::read(socket, buffer, request);
+            beast::http::response<beast::http::string_body> response;
+            handle_request(request, response);
+            beast::http::write(socket, response);
+        }
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+
+    return 0;
 }
