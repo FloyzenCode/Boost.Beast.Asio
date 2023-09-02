@@ -1,14 +1,15 @@
 # RESTfull API using Boost.Asio and Boost.Beast with Boost.property_tree.json_parser
 
 - run server:
-```cd server```
-```vcpkg install boost-asio```
-```vcpkg install boost```
-```mkdir build```
-```cd build```
-```cmake ..```
-```make```
-```./web_api```
+```shell
+cd server
+vcpkg install boost-asio
+vcpkg install boost
+mkdir build
+cd build
+cmake ..
+make
+web_api```
 
 or
 
@@ -20,9 +21,11 @@ bash run.sh
 ---
 
 - run client:
-```cd client```
-```npm i```
-```npm start```
+```shell
+cd client
+npm i
+npm start
+```
 
 or
 
